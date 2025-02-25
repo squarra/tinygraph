@@ -1,5 +1,5 @@
 from tinygrad import Tensor
-from tinygraph.utils import add_self_loops
+from tinygraph.utils import add_self_loops, degree
 
 
 class AdjGCNConv:
@@ -25,7 +25,7 @@ class GCNConv:
         edge_index = add_self_loops(edge_index, num_nodes)
         xw = x.linear(self.weight.transpose())
         src, dst = edge_index
-        deg_inv_sqrt = Tensor.zeros(num_nodes).scatter(0, dst, Tensor.ones(dst.shape[0]), reduce="add") ** (-0.5)
+        deg_inv_sqrt = degree(dst, num_nodes) ** (-0.5)
         norm = deg_inv_sqrt[src] * deg_inv_sqrt[dst]
         messages = norm.unsqueeze(1) * xw[src]
         scatter_index = dst.unsqueeze(1).expand(messages.shape[0], messages.shape[1])
