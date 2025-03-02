@@ -6,5 +6,4 @@ def add_self_loops(edge_index: Tensor, num_nodes: int) -> Tensor:
 
 
 def degree(index: Tensor, num_nodes: int) -> Tensor:
-    assert index.ndim == 1
-    return Tensor.zeros(num_nodes).scatter(0, index, Tensor.ones(index.shape[0]), reduce="add")
+    return Tensor.zeros(num_nodes).scatter_reduce(0, index, Tensor.ones(index.shape[0]), reduce="sum")
