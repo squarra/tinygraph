@@ -1,10 +1,11 @@
+import torch_geometric.transforms as T
 from torch_geometric import datasets
-from torch_geometric.transforms import NormalizeFeatures
+
 from tinygraph.data import Data, HeteroData
 
 
 def cora(normalize=False):
-    transform = NormalizeFeatures() if normalize else None
+    transform = T.NormalizeFeatures() if normalize else None
     return Data.from_pyg(datasets.Planetoid(root="/tmp/Cora", name="Cora", transform=transform)[0])
 
 
@@ -13,7 +14,9 @@ def reddit():
 
 
 def dblp():
-    return HeteroData.from_pyg(datasets.DBLP(root="/tmp/DBLP")[0])
+    data = datasets.DBLP(root="/tmp/DBLP", transform=T.Constant(node_types="conference"))[0]
+    del data["conference"].num_nodes
+    return HeteroData.from_pyg(data)
 
 
 def imdb():

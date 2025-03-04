@@ -82,6 +82,14 @@ class HeteroData:
     def edge_types(self):
         return list(self._edges)
 
+    @property
+    def x_dict(self):
+        return {node_type: self[node_type].x for node_type in self.node_types}
+
+    @property
+    def edge_index_dict(self):
+        return {edge_type: self[edge_type].edge_index for edge_type in self.edge_types}
+
     def items(self):
         return self.__dict__.items()
 
@@ -94,22 +102,6 @@ class HeteroData:
     @staticmethod
     def from_pyg(data: data.HeteroData):
         result = HeteroData()
-
-        for node_type in data.node_types:
-            kwargs = {}
-            for key in data[node_type]:
-                value = data[node_type][key]
-                if key == "num_nodes" and isinstance(value, int):
-                    kwargs["x"] = Tensor.arange(value)
-                else:
-                    kwargs[key] = Tensor(value.numpy(), requires_grad=False)
-            result[node_type] = Storage(**kwargs)
-
-        for edge_type in data.edge_types:
-            kwargs = {}
-            edge_dict = data[edge_type]
-            for key in edge_dict:
-                kwargs[key] = Tensor(edge_dict[key].numpy(), requires_grad=False)
-            result[edge_type] = Storage(**kwargs)
-
+        for attr in data.node_types + data.edge_types:
+            result[attr] = Storage(**{k: Tensor(v.numpy(), requires_grad=False) for k, v in data[attr].items()})
         return result
