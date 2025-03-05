@@ -14,17 +14,13 @@ class Storage:
         delattr(self, key)
 
     def __getattr__(self, name) -> Tensor:
-        if hasattr(super(), "__getattr__"):
-            return super().__getattr__(name)
-        raise AttributeError(name)
+        return super().__getattr__(self, name)
 
     def __getitem__(self, key) -> Tensor:
-        if not hasattr(self, key):
-            raise KeyError(key)
         return getattr(self, key)
 
     def __repr__(self):
-        return ", ".join(f"{k}={list(v.shape)}" for k, v in self.items())
+        return "{" + ", ".join(f"{k}={list(v.shape)}" for k, v in self.__dict__.items()) + "}"
 
     def __setattr__(self, name, value):
         if not isinstance(value, Tensor):
@@ -34,91 +30,85 @@ class Storage:
     def __setitem__(self, key, value):
         setattr(self, key, value)
 
-    def items(self):
-        return self.__dict__.items()
-
-    def keys(self):
-        return list(self.__dict__.keys())
-
 
 class Data(Storage):
     def __repr__(self):
         return f"Data({super().__repr__()})"
 
+    def items(self):
+        return self.__dict__.items()
+
+    def keys(self):
+        return self.__dict__.keys()
+
     @staticmethod
     def from_pyg(data: data.Data):
-        return Data(**{key: Tensor(value.numpy(), requires_grad=False) for key, value in data.items()})
+        return Data(**{k: Tensor(v.numpy(), requires_grad=False) for k, v in data.items()})
 
 
 class HeteroData:
     def __init__(self):
-        self._nodes = {}
-        self._edges = {}
+        self.nodes = {}
+        self.edges = {}
 
     def __contains__(self, key):
         return key in self.keys()
 
     def __delitem__(self, key):
         if isinstance(key, str):
-            if key in self._nodes:
-                del self._nodes[key]
-            else:
-                raise KeyError
+            del self.nodes[key]
         elif isinstance(key, tuple):
-            if key in self._edges:
-                del self._edges[key]
-            else:
-                raise KeyError
+            del self.edges[key]
         else:
             raise TypeError
 
     def __getitem__(self, key) -> Storage:
         if isinstance(key, str):
-            if key not in self._nodes:
-                self._nodes[key] = Storage()
-            return self._nodes[key]
+            if key not in self.nodes:
+                self.nodes[key] = Storage()
+            return self.nodes[key]
         elif isinstance(key, tuple):
-            if key not in self._edges:
-                self._edges[key] = Storage()
-            return self._edges[key]
+            if key not in self.edges:
+                self.edges[key] = Storage()
+            return self.edges[key]
         raise TypeError
 
     def __repr__(self):
-        node_str = ",\n".join([f"  {k}={{{v}}}" for k, v in self._nodes.items()])
-        edge_str = ",\n".join([f"  ({', '.join(elem for elem in k)})={{{v}}}" for (k), v in self._edges.items()])
+        node_str = ",\n".join([f"  {k}={v}" for k, v in self.nodes.items()])
+        edge_str = ",\n".join([f"  ({', '.join(elem for elem in k)})={v}" for k, v in self.edges.items()])
         return f"HeteroData(\n{node_str},\n{edge_str}\n)"
 
     def __setitem__(self, key, value):
         if not isinstance(value, Storage):
             raise TypeError
         if isinstance(key, str):
-            self._nodes[key] = value
+            self.nodes[key] = value
         elif isinstance(key, tuple):
-            self._edges[key] = value
+            self.edges[key] = value
         else:
             raise TypeError
 
     @property
     def node_types(self):
-        return list(self._nodes)
+        return list(self.nodes)
 
     @property
     def edge_types(self):
-        return list(self._edges)
+        return list(self.edges)
 
     @property
     def x_dict(self):
-        return {node_type: self._nodes[node_type].x for node_type in self.node_types}
+        return {node_type: self.nodes[node_type].x for node_type in self.node_types}
 
     @property
     def edge_index_dict(self):
-        return {edge_type: self._edges[edge_type].edge_index for edge_type in self.edge_types}
+        return {edge_type: self.edges[edge_type].edge_index for edge_type in self.edge_types}
 
     def items(self):
-        return self.__dict__.items()
+        return {**self.nodes, **self.edges}.items()
 
     def keys(self):
-        return list(self._nodes) + list(self._edges)
+        return {**self.nodes, **self.edges}.keys()
 
     def metadata(self):
         return self.node_types, self.edge_types

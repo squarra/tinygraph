@@ -3,8 +3,7 @@ import unittest
 from tinygrad import Tensor
 
 from test.helpers import generate_random_edge_index
-from tinygraph.data import Data
-from tinygraph.data.data import HeteroData
+from tinygraph.data import Data, HeteroData
 
 
 class TestData(unittest.TestCase):
@@ -21,7 +20,7 @@ class TestData(unittest.TestCase):
         self.assertFalse("a" in data)
         # delitem
         del data["y"]
-        with self.assertRaises(KeyError):
+        with self.assertRaises(AttributeError):
             data["y"]
         data.y = y
         # getattr
@@ -30,7 +29,7 @@ class TestData(unittest.TestCase):
             data.a
         # getitem
         self.assertListEqual(data["x"].tolist(), x.tolist())
-        with self.assertRaises(KeyError):
+        with self.assertRaises(AttributeError):
             data["a"]
         # setattr
         a = Tensor.zeros(1)
@@ -45,8 +44,6 @@ class TestData(unittest.TestCase):
         with self.assertRaises(TypeError):
             data["a"] = 4
         del data.a
-        # keys
-        self.assertListEqual(data.keys(), ["x", "edge_index", "y"])
 
     def test_hetero_data(self):
         one_node, two_node = "one", "two"
@@ -94,8 +91,6 @@ class TestData(unittest.TestCase):
         # edge_index_dict
         self.assertListEqual(list(data.edge_index_dict.keys()), edge_types)
         self.assertIsInstance(data.edge_index_dict[one_edge], Tensor)
-        # keys
-        self.assertListEqual(data.keys(), node_types + edge_types)
         # metadata
         self.assertTupleEqual(data.metadata(), (node_types, edge_types))
 

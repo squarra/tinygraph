@@ -5,11 +5,11 @@ from tinygraph.nn import datasets
 
 class TestNN(unittest.TestCase):
     def test_cora(self):
-        keys = ["x", "edge_index", "y", "train_mask", "val_mask", "test_mask"]
+        keys = {"x", "edge_index", "y", "train_mask", "val_mask", "test_mask"}
         self.assertEqual(keys, datasets.cora().keys())
 
     def test_reddit(self):
-        keys = ["x", "edge_index", "y", "train_mask", "val_mask", "test_mask"]
+        keys = {"x", "edge_index", "y", "train_mask", "val_mask", "test_mask"}
         self.assertEqual(keys, datasets.reddit().keys())
 
     def test_dblp(self):
