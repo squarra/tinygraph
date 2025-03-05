@@ -10,7 +10,15 @@ class Storage:
     def __contains__(self, key):
         return hasattr(self, key)
 
-    def __getitem__(self, key):
+    def __delitem__(self, key):
+        delattr(self, key)
+
+    def __getattr__(self, name) -> Tensor:
+        if hasattr(super(), "__getattr__"):
+            return super().__getattr__(name)
+        raise AttributeError(name)
+
+    def __getitem__(self, key) -> Tensor:
         if not hasattr(self, key):
             raise KeyError(key)
         return getattr(self, key)
@@ -50,7 +58,21 @@ class HeteroData:
     def __contains__(self, key):
         return key in self.keys()
 
-    def __getitem__(self, key):
+    def __delitem__(self, key):
+        if isinstance(key, str):
+            if key in self._nodes:
+                del self._nodes[key]
+            else:
+                raise KeyError
+        elif isinstance(key, tuple):
+            if key in self._edges:
+                del self._edges[key]
+            else:
+                raise KeyError
+        else:
+            raise TypeError
+
+    def __getitem__(self, key) -> Storage:
         if isinstance(key, str):
             if key not in self._nodes:
                 self._nodes[key] = Storage()
@@ -59,7 +81,7 @@ class HeteroData:
             if key not in self._edges:
                 self._edges[key] = Storage()
             return self._edges[key]
-        raise NotImplementedError
+        raise TypeError
 
     def __repr__(self):
         node_str = ",\n".join([f"  {k}={{{v}}}" for k, v in self._nodes.items()])
@@ -67,12 +89,14 @@ class HeteroData:
         return f"HeteroData(\n{node_str},\n{edge_str}\n)"
 
     def __setitem__(self, key, value):
+        if not isinstance(value, Storage):
+            raise TypeError
         if isinstance(key, str):
             self._nodes[key] = value
         elif isinstance(key, tuple):
             self._edges[key] = value
         else:
-            raise NotImplementedError
+            raise TypeError
 
     @property
     def node_types(self):
@@ -84,11 +108,11 @@ class HeteroData:
 
     @property
     def x_dict(self):
-        return {node_type: self[node_type].x for node_type in self.node_types}
+        return {node_type: self._nodes[node_type].x for node_type in self.node_types}
 
     @property
     def edge_index_dict(self):
-        return {edge_type: self[edge_type].edge_index for edge_type in self.edge_types}
+        return {edge_type: self._edges[edge_type].edge_index for edge_type in self.edge_types}
 
     def items(self):
         return self.__dict__.items()
