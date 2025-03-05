@@ -2,6 +2,7 @@ from tinygrad import Tensor, TinyJit, nn
 
 from tinygraph.nn import GCNConv
 from tinygraph.nn.datasets import cora
+from tinygraph.utils import convert_mask
 
 
 class Model:
@@ -15,10 +16,6 @@ class Model:
         return self.conv2(x, edge_index).softmax(axis=1)
 
 
-def _mask(mask):
-    return Tensor([index for index, item in enumerate(mask.tolist()) if item])
-
-
 if __name__ == "__main__":
     data = cora()
 
@@ -29,7 +26,7 @@ if __name__ == "__main__":
     print(f"number of parameters: {sum(p.numel() for p in params)}")
     optimizer = nn.optim.Adam(params, lr=0.01)
 
-    train_mask, val_mask, test_mask = _mask(data.train_mask), _mask(data.val_mask), _mask(data.test_mask)
+    train_mask, val_mask, test_mask = convert_mask(data.train_mask), convert_mask(data.val_mask), convert_mask(data.test_mask)
 
     @TinyJit
     @Tensor.train()
